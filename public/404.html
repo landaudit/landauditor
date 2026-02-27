@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      // Redirect all 404s to index.html for SPA routing
+      var path = window.location.pathname;
+      window.location.replace(window.location.origin + '/landauditor/' + '?p=' + encodeURIComponent(path));
+    </script>
+  </head>
+</html>
