@@ -716,7 +716,7 @@ export function AuditPage() {
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
-    // Fetch session
+    // Fetch session — ★ NO CHANGES, this is fine
     useEffect(() => {
         if (!sessionId) return
         const fetchSession = async () => {
@@ -734,7 +734,8 @@ export function AuditPage() {
         fetchSession()
     }, [sessionId])
 
-    // Realtime: audit session updates
+    // ★ CHANGED — Realtime: audit session updates
+    // Don't trust payload.new for merged_result — do a full refetch on completion
     useEffect(() => {
         if (!sessionId) return
         const channel = supabase.channel(`audit-${sessionId}`)
@@ -742,10 +743,31 @@ export function AuditPage() {
                 { event: 'UPDATE', schema: 'public', table: 'audit_sessions', filter: `id=eq.${sessionId}` },
                 async (payload) => {
                     const u = payload.new as AuditSession
-                    setSession(u)
-                    if (u.status === 'complete' || u.status === 'failed' || u.status === 'refunded') {
-                        const { data: f } = await supabase.from('compliance_flags').select('*').eq('session_id', sessionId).order('created_at')
+
+                    // For non-terminal statuses, use the payload directly (progress updates)
+                    if (u.status !== 'complete' && u.status !== 'failed' && u.status !== 'refunded') {
+                        setSession((prev) => prev ? { ...prev, ...u } : u)
+                        return
+                    }
+
+                    // ★ For terminal statuses, do a FULL refetch to get merged_result
+                    console.log(`[Realtime] Status changed to ${u.status}, fetching full session...`)
+                    const { data: fullSession } = await supabase
+                        .from('audit_sessions')
+                        .select('*')
+                        .eq('id', sessionId)
+                        .single()
+
+                    if (fullSession) {
+                        setSession(fullSession as AuditSession)
+
+                        const { data: f } = await supabase
+                            .from('compliance_flags')
+                            .select('*')
+                            .eq('session_id', sessionId)
+                            .order('created_at')
                         if (f) setFlags(f as ComplianceFlag[])
+
                         refreshTenant()
                     }
                 }
@@ -754,21 +776,39 @@ export function AuditPage() {
         return () => { supabase.removeChannel(channel) }
     }, [sessionId])
 
-    // Polling fallback — updates every 3s until terminal status
+    // ★ CHANGED — Polling fallback: also does full refetch on terminal status
     useEffect(() => {
         if (!sessionId) return
         const isTerminal = session?.status === 'complete' || session?.status === 'failed' || session?.status === 'refunded'
         if (isTerminal) return
 
         const interval = setInterval(async () => {
-            const { data } = await supabase.from('audit_sessions').select('*').eq('id', sessionId).single()
-            if (data) {
+            const { data } = await supabase
+                .from('audit_sessions')
+                .select('*')
+                .eq('id', sessionId)
+                .single()
+
+            if (!data) return
+
+            const status = data.status as SessionStatus
+
+            if (status === 'complete' || status === 'failed' || status === 'refunded') {
+                // ★ Terminal — set session with full data (includes merged_result)
                 setSession(data as AuditSession)
-                if (data.status === 'complete' || data.status === 'failed' || data.status === 'refunded') {
-                    const { data: f } = await supabase.from('compliance_flags').select('*').eq('session_id', sessionId).order('created_at')
-                    if (f) setFlags(f as ComplianceFlag[])
-                    refreshTenant()
-                }
+
+                const { data: f } = await supabase
+                    .from('compliance_flags')
+                    .select('*')
+                    .eq('session_id', sessionId)
+                    .order('created_at')
+                if (f) setFlags(f as ComplianceFlag[])
+
+                refreshTenant()
+                clearInterval(interval) // ★ Stop polling immediately
+            } else {
+                // ★ Still processing — update progress only
+                setSession(data as AuditSession)
             }
         }, 3000)
 
