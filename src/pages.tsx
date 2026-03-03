@@ -131,6 +131,8 @@ const pdfStyles = StyleSheet.create({
   flagCard: { marginBottom: 8, padding: 8, borderRadius: 4 },
   flagRed: { backgroundColor: '#fef2f2', borderLeft: '3 solid #ef4444' },
   flagYellow: { backgroundColor: '#fffbeb', borderLeft: '3 solid #f59e0b' },
+  flagOrange: { backgroundColor: '#fff7ed', borderLeft: '3 solid #f97316' },
+  flagBlue: { backgroundColor: '#eff6ff', borderLeft: '3 solid #3b82f6' },
   flagSection: { fontFamily: 'Helvetica-Bold', fontSize: 10, marginBottom: 2 },
   flagDesc: { fontSize: 9, color: '#475569', marginBottom: 4 },
   flagCited: { fontSize: 8, color: '#64748b', fontStyle: 'italic', padding: 6, backgroundColor: '#ffffff', borderRadius: 3, marginTop: 4 },
@@ -216,10 +218,12 @@ function AuditReportPDF({
           </>
         )}
 
-        <Text style={pdfStyles.note}>
-          This report was generated automatically. Site plan visual verification must be performed manually.
-          All data extracted verbatim from the source document. Compliance checks reference Ghana Land Act 2020 (Act 1036).
-        </Text>
+              <Text style={pdfStyles.note}>
+                  IMPORTANT NOTICE: This report is AI-assisted preliminary risk identification only. It does not constitute legal advice,
+                  legal opinion, or title certification. Statutory citations are retrieved from an embedded copy of the Ghana Land Act 2020
+                  (Act 1036) and should be verified against the official gazette. Site plan verification must be performed manually.
+                  A qualified legal practitioner must independently review all findings before any reliance is placed on this report.
+              </Text>
 
         <Text style={pdfStyles.footer}>
           {agencyName} — Land Audit Platform — {totalPages || 'N/A'} pages processed — Generated {new Date().toISOString()}
@@ -418,8 +422,14 @@ export function DashboardPage() {
   return (
     <div className="max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Welcome, {tenant?.agency_name}</h1>
-        <p className="text-slate-500 text-sm mt-1">Manage your land deed audits and compliance checks.</p>
+              <h1 className="text-2xl font-bold text-slate-800">Welcome, {tenant?.agency_name}</h1>
+              <p className="text-slate-500 text-sm mt-1">Land Audit GH is an AI-powered due diligence assistant — preliminary risk identification against the Ghana Land Act 2020 (Act 1036).
+                  Not legal advice.
+                  The Service provides automated document analysis and statutory cross-referencing as a productivity tool for legal professionals.
+                  The Service does not provide legal advice, legal opinions, or title certification.
+                  Users acknowledge that all outputs require independent professional verification.
+                  [Company name] accepts no liability for decisions made in reliance on the Service's outputs without independent legal review.
+              </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -1040,11 +1050,23 @@ export function AuditPage() {
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Compliance Flags</h2>
               <div className="space-y-3">
                 {flags.map((f) => (
-                  <div key={f.id} className={`p-4 rounded-lg border-l-4 ${f.badge_color === 'red' ? 'border-l-red-500 bg-red-50' : 'border-l-amber-500 bg-amber-50'}`}>
+                    <div key={f.id} className={`p-4 rounded-lg border-l-4 ${f.badge_color === 'red' ? 'border-l-red-500 bg-red-50' :
+                            f.badge_color === 'orange' ? 'border-l-orange-500 bg-orange-50' :
+                                f.badge_color === 'blue' ? 'border-l-blue-500 bg-blue-50' :
+                                    'border-l-amber-500 bg-amber-50'
+                        }`}>
                     <div className="flex items-start gap-3">
-                      <span className={`shrink-0 px-2 py-0.5 text-xs rounded-full font-semibold uppercase ${f.badge_color === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {f.severity === 'statutory_violation' ? 'VIOLATION' : f.severity === 'legal_risk' ? 'RISK' : f.severity === 'discrepancy' ? 'DISCREPANCY' : 'MISSING'}
-                      </span>
+                            <span className={`shrink-0 px-2 py-0.5 text-xs rounded-full font-semibold uppercase ${f.badge_color === 'red' ? 'bg-red-100 text-red-700' :
+                                    f.badge_color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                        f.badge_color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-amber-100 text-amber-700'
+                                }`}>
+                                {f.severity === 'fatal_breach' ? 'FATAL' :
+                                    f.severity === 'statutory_violation' ? 'VIOLATION' :
+                                        f.severity === 'legal_risk' ? 'RISK' :
+                                            f.severity === 'documentary_deficiency' ? 'DEFICIENCY' :
+                                                f.severity === 'discrepancy' ? 'DISCREPANCY' : 'MISSING'}
+                            </span>
                       <div className="flex-1">
                         <div className="font-medium text-slate-800 text-sm">{f.section}</div>
                         <div className="text-sm text-slate-600 mt-1">{f.description}</div>
