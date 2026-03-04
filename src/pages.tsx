@@ -202,10 +202,19 @@ function AuditReportPDF({
           <>
             <Text style={pdfStyles.sectionTitle}>Compliance Flags</Text>
             {flags.map((f, i) => (
-              <View key={i} style={[pdfStyles.flagCard, f.badge_color === 'red' ? pdfStyles.flagRed : pdfStyles.flagYellow]}>
-                <Text style={pdfStyles.flagSection}>
-                  [{f.badge_color === 'red' ? 'RED' : 'YELLOW'}] {f.section}
-                </Text>
+                <View key={i} style={[
+                    pdfStyles.flagCard,
+                    f.badge_color === 'red' ? pdfStyles.flagRed :
+                        f.badge_color === 'orange' ? pdfStyles.flagOrange :
+                            f.badge_color === 'blue' ? pdfStyles.flagBlue :
+                                pdfStyles.flagYellow
+                ]}>
+                    <Text style={pdfStyles.flagSection}>
+                        [{f.severity === 'fatal_breach' ? 'FATAL' :
+                            f.severity === 'statutory_violation' ? 'HIGH RISK' :
+                                f.severity === 'legal_risk' ? 'RISK' :
+                                    f.severity === 'documentary_deficiency' ? 'DEFICIENCY' : 'FLAG'}] {f.section}
+                    </Text>
                 <Text style={pdfStyles.flagDesc}>{f.description}</Text>
                 {f.cited_act_text && (
                   <Text style={pdfStyles.flagCited}>Act 1036: {f.cited_act_text}</Text>
@@ -1062,10 +1071,9 @@ export function AuditPage() {
                                             'bg-amber-100 text-amber-700'
                                 }`}>
                                 {f.severity === 'fatal_breach' ? 'FATAL' :
-                                    f.severity === 'statutory_violation' ? 'VIOLATION' :
+                                    f.severity === 'statutory_violation' ? 'HIGH RISK' :
                                         f.severity === 'legal_risk' ? 'RISK' :
-                                            f.severity === 'documentary_deficiency' ? 'DEFICIENCY' :
-                                                f.severity === 'discrepancy' ? 'DISCREPANCY' : 'MISSING'}
+                                            f.severity === 'documentary_deficiency' ? 'DEFICIENCY' : 'FLAG'}
                             </span>
                       <div className="flex-1">
                         <div className="font-medium text-slate-800 text-sm">{f.section}</div>
